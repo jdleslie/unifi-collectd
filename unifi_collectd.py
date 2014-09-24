@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import argparse, os, datetime, time, collections
-
 from unifi.controller import Controller
 
 parser = argparse.ArgumentParser()
@@ -15,13 +14,13 @@ parser.add_argument('-p', '--password', default='ubnt',
                     help='the controller password (default "ubnt")')
 parser.add_argument('-v', '--version', default='v2',
                     help='the controller base version (default "v2")')
-parser.add_argument('-s', '--siteid', default='default',
+parser.add_argument('-s', '--site_id', default='default',
                     help='the site ID, UniFi >=3.x only (default "default")')
 args = parser.parse_args()
 
 if not args.interval:
-    args.interval = os.getenv('COLLECTD_INTERVAL', 60)
-args.interval = float(args.interval)
+    args.interval = int(os.getenv('COLLECTD_INTERVAL', 60))
+args.interval = int(args.interval)
 if not args.controller:
     args.controller = os.getenv('COLLECTD_HOSTNAME', 'unifi')
 
@@ -41,42 +40,59 @@ def putval(identifier, values):
 def hostname(ap):
     return ap['name'].split()[0]
 
+def clean_ssid(ssid):
+    #return ssid.replace('-', ' ')
+    return ssid
+
 def print_ap_stats(ap):
-    prefix = hostname(ap) + '/unifi_ap'
-    putval(prefix + '/scanning', ap['scanning'] and 1 or 0)
-    putval(prefix + '/num_sta-na', ap['ng-num_sta'])
-    putval(prefix + '/num_sta-ng', ap['na-num_sta'])
+    putval(hostname(ap) + '/num_sta/num_sta', (ap['ng-num_sta'], ap['na-num_sta']) )
 
 def print_essid_stats(ap):
-    elements = ['num_sta', 'ccq', 'tx_retries', 'rx_frags', 'rx_nwids', 'rx_crypts']
-    prefixes = ['tx', 'rx']
-    bases = ['bytes', 'packets', 'dropped', 'errors']
-    elements += [prefix + '_' + base for base in bases for prefix in prefixes]
-
     for vap in ap['vap_table']:
         assert not '/' in vap['essid']
         kwargs = {
             'host': hostname(ap),
-            'essid': vap['essid'],
+            'essid': clean_ssid(vap['essid']),
             'radio': vap['radio'],
         }
-        identifier = lambda m: "{host}/unifi_essid-{essid}/{}-{radio}".format(m, **kwargs)
+        identifier = lambda type: "{host}/{essid}-{radio}/{}".format(type, **kwargs)
+        values = lambda *args: [vap[x] for x in args]
 
-        for key, value in vap.iteritems():
-            if key in elements:
-                putval(identifier(key), value)
+        # Symmetrical interface stats
+        prefixes = ['if_', 'rx_', 'tx_']
+        bases = ['bytes', 'packets', 'dropped', 'errors']
+        for type, rx, tx in [ [p + b for p in prefixes] for b in bases]:
+            putval(identifier(type), values(rx, tx) )
 
-while True:
-    now = datetime.datetime.utcnow()
+        # Copy of Unifi -> Access Points -> Performance bar charts (TX 2G/5G)
+        putval(identifier('tx_performance'), values('tx_dropped', 'tx_retries', 'tx_packets') )
 
-    try:
-        controller = Controller(args.controller, args.username, args.password, args.version, args.siteid)
-    except:
-        time.sleep(5)
-        continue
-    else:
-        for ap in controller.get_aps():
-            print_ap_stats(ap)
-            print_essid_stats(ap)
-        time.sleep(args.interval)
-    
+        # Clients associated with ESSID on this AP
+        putval(identifier('ath_nodes'), values('num_sta'))
+
+        # Miscellaneous statistics
+        prefixes = ['ath_stat-', '']
+        bases = ['ccq', 'rx_frags', 'rx_nwids', 'rx_crypts']
+        for type, key in [ [p + b for p in prefixes] for b in bases]:
+            putval(identifier(type), values(key) )
+
+if __name__ == '__main__':
+    from urllib2 import URLError, HTTPError
+
+    while True:
+        now = datetime.datetime.utcnow()
+
+        try:
+            if not controller: 
+#                controller = Controller(args.controller, args.username, args.password, 
+#                                        args.version, args.siteid)
+                controller = Controller(**args)
+            for ap in controller.get_aps():
+                print_ap_stats(ap)
+                print_essid_stats(ap)
+
+            time.sleep(args.interval)            
+        except (URLError, HTTPError) as err:
+            controller = None
+            time.sleep(10)
+            continue
