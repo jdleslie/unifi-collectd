@@ -45,9 +45,9 @@ def clean_ssid(ssid):
 
 def print_controller_stats(c):
     clients = c.get_clients()
-    putval(c.host + '/num_sta/ath_nodes', len(clients) )
+    putval(c.host + '/unifi_num_sta/ath_nodes', len(clients) )
     clients_radio = collections.Counter(map(lambda x: str(x['radio']), c.get_clients()) )
-    putval(c.host + '/num_sta/num_sta', (clients_radio['ng'], clients_radio['na']) )
+    putval(c.host + '/unifi_num_sta/num_sta', (clients_radio['ng'], clients_radio['na']) )
 
 def print_ap_stats(ap):
     putval(hostname(ap) + '/num_sta/num_sta', (ap['ng-num_sta'], ap['na-num_sta']) )
