@@ -20,8 +20,8 @@ parser.add_argument('-s', '--siteid', default='default',
 args = parser.parse_args()
 
 if not args.interval:
-    args.interval = os.getenv('COLLECTD_INTERVAL', 60)
-args.interval = float(args.interval)
+    args.interval = float(os.getenv('COLLECTD_INTERVAL', 60))
+args.interval = int(args.interval)
 if not args.controller:
     args.controller = os.getenv('COLLECTD_HOSTNAME', 'unifi')
 
