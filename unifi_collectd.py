@@ -41,7 +41,7 @@ def hostname(ap):
     return ap['name'].split()[0]
 
 def clean_ssid(ssid):
-    return ssid.replace(' ', '_')
+    return ssid.replace(' ', '_').replace('-', '_')
 
 def print_controller_stats(c):
     clients = c.get_clients()
@@ -50,7 +50,8 @@ def print_controller_stats(c):
     putval(c.host + '/unifi_num_sta/num_sta', (clients_radio['ng'], clients_radio['na']) )
 
 def print_ap_stats(ap):
-    putval(hostname(ap) + '/num_sta/num_sta', (ap['ng-num_sta'], ap['na-num_sta']) )
+    putval(hostname(ap) + '/unifi_num_sta/ath_nodes', (ap['ng-num_sta'], ap['na-num_sta']) )
+    putval(hostname(ap) + '/unifi_num_sta/num_sta', (ap['ng-num_sta'], ap['na-num_sta']) )
 
 def print_essid_stats(ap):
     for vap in ap['vap_table']:
@@ -60,7 +61,7 @@ def print_essid_stats(ap):
             'essid': clean_ssid(vap['essid']),
             'radio': vap['radio'],
         }
-        identifier = lambda type: "{host}/{essid}-{radio}/{}".format(type, **kwargs)
+        identifier = lambda type: "{host}/unifi_essid_{essid}-{radio}/{}".format(type, **kwargs)
         values = lambda *args: [vap[x] for x in args]
 
         # Symmetrical interface stats
