@@ -19,7 +19,7 @@ parser.add_argument('-s', '--site_id', default='default',
 args = parser.parse_args()
 
 if not args.interval:
-    args.interval = int(os.getenv('COLLECTD_INTERVAL', 60))
+    args.interval = float(os.getenv('COLLECTD_INTERVAL', 60))
 args.interval = int(args.interval)
 if not args.controller:
     args.controller = os.getenv('COLLECTD_HOSTNAME', 'unifi')
@@ -41,8 +41,7 @@ def hostname(ap):
     return ap['name'].split()[0]
 
 def clean_ssid(ssid):
-    #return ssid.replace('-', ' ')
-    return ssid
+    return ssid.replace(' ', '_')
 
 def print_ap_stats(ap):
     putval(hostname(ap) + '/num_sta/num_sta', (ap['ng-num_sta'], ap['na-num_sta']) )
@@ -62,6 +61,7 @@ def print_essid_stats(ap):
         prefixes = ['if_', 'rx_', 'tx_']
         bases = ['bytes', 'packets', 'dropped', 'errors']
         for type, rx, tx in [ [p + b for p in prefixes] for b in bases]:
+            type = type == 'if_bytes' and 'if_octets' or type
             putval(identifier(type), values(rx, tx) )
 
         # Copy of Unifi -> Access Points -> Performance bar charts (TX 2G/5G)
