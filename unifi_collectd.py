@@ -84,9 +84,9 @@ if __name__ == '__main__':
 
         try:
             if not controller: 
-#                controller = Controller(args.controller, args.username, args.password, 
-#                                        args.version, args.siteid)
-                controller = Controller(**args)
+                controller = Controller(args.controller, args.username, args.password, 
+                                        args.version, args.site_id)
+#                controller = Controller(**args)
             for ap in controller.get_aps():
                 print_ap_stats(ap)
                 print_essid_stats(ap)
