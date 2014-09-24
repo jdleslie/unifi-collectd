@@ -43,6 +43,12 @@ def hostname(ap):
 def clean_ssid(ssid):
     return ssid.replace(' ', '_')
 
+def print_controller_stats(c):
+    clients = c.get_clients()
+    putval(c.host + '/num_sta/ath_nodes', len(clients) )
+    clients_radio = collections.Counter(map(lambda x: str(x['radio']), c.get_clients()) )
+    putval(c.host + '/num_sta/num_sta', (clients_radio['ng'], clients_radio['na']) )
+
 def print_ap_stats(ap):
     putval(hostname(ap) + '/num_sta/num_sta', (ap['ng-num_sta'], ap['na-num_sta']) )
 
@@ -88,6 +94,7 @@ if __name__ == '__main__':
                                         args.version, args.site_id)
 #                controller = Controller(**args)
             for ap in controller.get_aps():
+                print_controller_stats(controller)
                 print_ap_stats(ap)
                 print_essid_stats(ap)
 
