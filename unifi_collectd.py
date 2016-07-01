@@ -16,6 +16,8 @@ parser.add_argument('-v', '--version', default='v2',
                     help='the controller base version (default "v2")')
 parser.add_argument('-s', '--site_id', default='default',
                     help='the site ID, UniFi >=3.x only (default "default")')
+parser.add_argument('-P', '--port', default=8443, 
+                    help='the port on the unifi controller for the API. Default to 8443.')
 args = parser.parse_args()
 
 if not args.interval:
@@ -91,8 +93,7 @@ if __name__ == '__main__':
 
         try:
             if not controller: 
-                controller = Controller(args.controller, args.username, args.password, 
-                                        args.version, args.site_id)
+                controller = Controller(args.controller, args.username, args.password, args.port, args.version, args.site_id)
 #                controller = Controller(**args)
             for ap in controller.get_aps():
                 print_controller_stats(controller)
